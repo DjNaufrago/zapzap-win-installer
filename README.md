@@ -29,5 +29,5 @@ If you want to audit the code, modify it, or compile the `.exe` installer by you
 ---
 
 ## Credits
-- **Original App Developer:** [Rafatosta (ZapZap)](https://github.com)
+- **Original App Developer:** [[Rafatosta (ZapZap)](https://github.com)](https://github.com/rafatosta)
 - **Windows Packaging & Installer:** RAMS Software (DjNaufrago)
