@@ -1,0 +1,80 @@
+name: Build Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_upload:
+        description: "Upload Windows artifact to GitHub Release"
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: "Release tag to upload artifact"
+        required: false
+        type: string
+        default: ""
+
+  workflow_call:
+    inputs:
+      release_upload:
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Windows ${{ matrix.artifact_arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            python_arch: x64
+            artifact_arch: x86_64
+          - runner: windows-11-arm
+            python_arch: arm64
+            artifact_arch: arm64
+    env:
+      PYTHON_VERSION: "3.14"
+      PYTHONUTF8: 1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release tag
+        if: ${{ inputs.release_upload && inputs.release_tag == '' }}
+        shell: bash
+        run: |
+          echo "release_tag is required when release_upload=true"
+          exit 1
+      - name: Set packaging scripts executable
+        run: |
+          chmod +x .github/packaging/common/build-info.sh
+      - name: Create BuildInfo.py
+        shell: bash
+        run: .github/packaging/common/build-info.sh "Windows ${{ matrix.artifact_arch }} (exe)"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          architecture: ${{ matrix.python_arch }}
+      - name: Build Windows executable
+        shell: pwsh
+        run: .github/packaging/windows/build.ps1 -Architecture "${{ matrix.artifact_arch }}"
+      - name: Upload artifact
+        if: ${{ !inputs.release_upload }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZapZap-Windows-${{ matrix.artifact_arch }}
+          path: dist/ZapZap-*-windows-${{ matrix.artifact_arch }}.exe
+      - name: Upload to release
+        if: ${{ inputs.release_upload }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          files: dist/ZapZap-*-windows-${{ matrix.artifact_arch }}.exe
